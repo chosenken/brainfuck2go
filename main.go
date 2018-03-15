@@ -170,16 +170,16 @@ func main() {
 	for _, optCode := range optCodes {
 		switch optCode.Type {
 		case PTUP:
-			addLine(sb, fmt.Sprintf("ptr = ptr + %d", optCode.Value), tabs)
+			addLine(sb, fmt.Sprintf("ptr += %d", optCode.Value), tabs)
 
 		case PTDOWN:
-			addLine(sb, fmt.Sprintf("ptr = ptr - %d", optCode.Value), tabs)
+			addLine(sb, fmt.Sprintf("ptr -= %d", optCode.Value), tabs)
 
 		case VALUEUP:
-			addLine(sb, fmt.Sprintf("buffer[ptr] = buffer[ptr] + byte(%d)", optCode.Value), tabs)
+			addLine(sb, fmt.Sprintf("buffer[ptr] += byte(%d)", optCode.Value), tabs)
 
 		case VALUEDOWN:
-			addLine(sb, fmt.Sprintf("buffer[ptr] = buffer[ptr] - byte(%d)", optCode.Value), tabs)
+			addLine(sb, fmt.Sprintf("buffer[ptr] -= byte(%d)", optCode.Value), tabs)
 
 		case READOUT:
 			addLine(sb, "fmt.Print(string(buffer[ptr]))", tabs)
