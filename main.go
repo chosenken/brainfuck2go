@@ -34,9 +34,11 @@ const tab = "\t"
 
 func main() {
 	var inputFile, outputFile string
+	doOptimizations := false
 
 	flag.StringVar(&inputFile, "file", "", "path to program file")
 	flag.StringVar(&outputFile, "out", "", "path to output file")
+	flag.Bool("opt", doOptimizations, "Do Optimizations")
 	flag.Parse()
 
 	if len(inputFile) == 0 {
@@ -57,9 +59,6 @@ func main() {
 	hasReadin := false
 	hasOutput := false
 	for i := 0; i < programLen; i++ {
-		if optCodes.HasNext() {
-			last = optCodes.PopLast()
-		}
 		switch program[i] {
 		case '>':
 			if last.Type == PTUP {
@@ -68,10 +67,10 @@ func main() {
 				if last.Type != -1 {
 					optCodes.Push(last)
 				}
-				optCodes.Push(&OptCode{
+				last = &OptCode{
 					Type:  PTUP,
 					Value: 1,
-				})
+				}
 			}
 		case '<':
 			if last.Type == PTDOWN {
@@ -80,10 +79,10 @@ func main() {
 				if last.Type != -1 {
 					optCodes.Push(last)
 				}
-				optCodes.Push(&OptCode{
+				last = &OptCode{
 					Type:  PTDOWN,
 					Value: 1,
-				})
+				}
 			}
 		case '+':
 			if last.Type == VALUEUP {
@@ -92,10 +91,10 @@ func main() {
 				if last.Type != -1 {
 					optCodes.Push(last)
 				}
-				optCodes.Push(&OptCode{
+				last = &OptCode{
 					Type:  VALUEUP,
 					Value: 1,
-				})
+				}
 			}
 		case '-':
 			if last.Type == VALUEDOWN {
@@ -104,48 +103,51 @@ func main() {
 				if last.Type != -1 {
 					optCodes.Push(last)
 				}
-				optCodes.Push(&OptCode{
+				last = &OptCode{
 					Type:  VALUEDOWN,
 					Value: 1,
-				})
+				}
 			}
 		case '.':
 			if last.Type != -1 {
 				optCodes.Push(last)
 			}
-			optCodes.Push(&OptCode{
+			last = &OptCode{
 				Type: READOUT,
-			})
+			}
 			hasOutput = true
 		case ',':
 			if last.Type != -1 {
 				optCodes.Push(last)
 			}
-			optCodes.Push(&OptCode{
+			last = &OptCode{
 				Type: READIN,
-			})
+			}
 			hasReadin = true
 		case '[':
 			if last.Type != -1 {
 				optCodes.Push(last)
 			}
-			optCodes.Push(&OptCode{
+			last = &OptCode{
 				Type: BEGINLOOP,
-			})
+			}
 		case ']':
 			if last.Type != -1 {
 				optCodes.Push(last)
 			}
-			optCodes.Push(&OptCode{
+			last = &OptCode{
 				Type: ENDLOOP,
-			})
+			}
 		default:
-			optCodes.Push(last)
 			continue
 		}
 	}
-
-	processed := OptimizeForLoops(optCodes)
+	var processed *FIFO
+	if doOptimizations {
+		processed = OptimizeForLoops(optCodes)
+	} else {
+		processed = optCodes
+	}
 
 	// Print out go code!
 	sb := &strings.Builder{}
