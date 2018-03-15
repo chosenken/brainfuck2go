@@ -14,15 +14,15 @@ const (
 )
 
 const (
-	PTUP = iota
-	PTDOWN
-	VALUEUP
-	VALUEDOWN
-	READOUT
-	READIN
-	BEGINLOOP
-	ENDLOOP
-	SETZERO
+	PTUP      = iota // 0
+	PTDOWN           // 1
+	VALUEUP          // 2
+	VALUEDOWN        // 3
+	READOUT          // 4
+	READIN           // 5
+	BEGINLOOP        // 6
+	ENDLOOP          // 7
+	SETZERO          // 8
 )
 
 type OptCode struct {
@@ -34,11 +34,10 @@ const tab = "\t"
 
 func main() {
 	var inputFile, outputFile string
-	doOptimizations := false
 
 	flag.StringVar(&inputFile, "file", "", "path to program file")
 	flag.StringVar(&outputFile, "out", "", "path to output file")
-	flag.Bool("opt", doOptimizations, "Do Optimizations")
+	var doOptimizations = flag.Bool("opt", false, "Do Optimizations")
 	flag.Parse()
 
 	if len(inputFile) == 0 {
@@ -142,8 +141,11 @@ func main() {
 			continue
 		}
 	}
+	if last.Type != -1 {
+		optCodes.Push(last)
+	}
 	var processed *FIFO
-	if doOptimizations {
+	if *doOptimizations {
 		processed = OptimizeForLoops(optCodes)
 	} else {
 		processed = optCodes
@@ -166,7 +168,7 @@ func main() {
 	if hasReadin {
 		addLine(sb, "b := make([]byte, 1)", tabs)
 	}
-	for opt := processed.Pop(); processed.HasNext(); opt = processed.Pop() {
+	for opt := processed.Pop(); opt != nil; opt = processed.Pop() {
 		switch opt.Type {
 		case PTUP:
 			addLine(sb, fmt.Sprintf("ptr += %d", opt.Value), tabs)
@@ -210,7 +212,7 @@ func main() {
 
 func OptimizeForLoops(optCodes *FIFO) *FIFO {
 	output := NewFifo()
-	for opt := optCodes.Pop(); optCodes.HasNext(); opt = optCodes.Pop() {
+	for opt := optCodes.Pop(); opt != nil; opt = optCodes.Pop() {
 		// This optimization is quite simple.  We are looking for what is essentially [-]
 		// This resets the value at current pointer to 0, so we are looking for this
 		// and just setting the value to 0
@@ -233,7 +235,7 @@ func OptimizeForLoops(optCodes *FIFO) *FIFO {
 
 func addLine(sb *strings.Builder, value string, tabs int) {
 	for i := 0; i < tabs; i++ {
-		sb.WriteString("\t")
+		sb.WriteString(tab)
 	}
 	sb.WriteString(value)
 	sb.WriteString("\n")
@@ -262,12 +264,16 @@ func (f *FIFO) Pop() *OptCode {
 		return nil
 	}
 	v := f.queue[0]
-	f.queue = f.queue[1:]
+	if len(f.queue) == 1 {
+		f.queue = make([]*OptCode, 0)
+	} else {
+		f.queue = f.queue[1:]
+	}
 	return v
 }
 
 func (f *FIFO) HasNext() bool {
-	return len(f.queue) > 0
+	return len(f.queue) >= 0
 }
 
 func (f *FIFO) Peak() *OptCode {
@@ -289,4 +295,8 @@ func (f *FIFO) PopLast() *OptCode {
 	v := f.queue[len(f.queue)-1]
 	f.queue = f.queue[:len(f.queue)-1]
 	return v
+}
+
+func (f *FIFO) Length() int {
+	return len(f.queue)
 }
